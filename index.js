@@ -1,5 +1,7 @@
+require('dotenv').config()
 const express = require('express')
 const app = express()
+const User = require('./models/user')
 
 const cors = require('cors')
 app.use(cors())
@@ -48,18 +50,25 @@ app.get('/', (request, response) => {
 })
 
 app.get('/api/users', (request, response) => {
-	response.json(users)
+	// response.json(users)
+	User.find({}).then(users => {
+		response.json(users)
+	})
 })
 
 app.get('/api/users/:user', (request, response) => {
 	const username = request.params.user
-	const user = users.find(u => u.username === username)
+	// const user = users.find(u => u.username === username)
 
-	if (user) {
-		response.json(user)
-	} else {
-	response.status(404).end()
-	}
+	User.find({username: username}).then(result => {
+		response.json(result)
+	})
+	
+	// if (user) {
+	// 	response.json(user)
+	// } else {
+	// 	response.status(404).end()
+	// }
 })
 
 app.post('/api/users/:user', (request, response) => {
@@ -75,21 +84,42 @@ app.post('/api/users/:user', (request, response) => {
 	
 	const note = {
 		content: body.content,
-		id: users.find(u => u.username === username).notes.length + 1
 	}
+
+	User.find({username: username}).then(result => {
+		result[0].notes.push(note)
+		result[0].save().then(result => {
+			response.json(result)
+		})
+	})
 	
-	users.find(u => u.username === username).notes = users.find(u => u.username === username).notes.concat(note)
+	// users.find(u => u.username === username).notes = users.find(u => u.username === username).notes.concat(note)
 	// console.log(users)
+
 	
-	response.json(note)
+	// User.find({username: username}).then(result => {
+	// 	// result.notes = result.notes.concat(note)
+	// 	// result.save()
+	// 	result[0].notes = result[0].notes.concat(note)
+	// 	response.json(result)
+	// })
+	
+	// response.json(note)
 })
 
 app.delete('/api/users/:user/:id', (request, response) => {
-	const id = Number(request.params.id)
+	const id = (request.params.id)
 	const username = request.params.user
+	
+	console.log(id)
 
-	users.find(u => u.username === username).notes = users.find(u => u.username === username).notes.filter(n => n.id !== id)
+	// users.find(u => u.username === username).notes = users.find(u => u.username === username).notes.filter(n => n.id !== id)
 
+	User.find({username: username}).then(result => {
+		result[0].notes = result[0].notes.filter(n => n.id !== id)
+		result[0].save()
+	})
+	
 	response.status(204).end()
 })
 
@@ -105,21 +135,21 @@ app.post('/api/users', (request, response) => {
 	const username = body.username
 	const password = body.password
 
-	const newUser = {
-		id: users.length + 1,
+	const user = new User({
 		username: username,
 		password: password,
 		notes: []
-	}
+	})
 
-	users = users.concat(newUser)
-
-	response.json(newUser)
+	// users = users.concat(newUser)
+	user.save().then(savedNote => {
+		response.json(savedNote)
+	})
 })
 
 app.use(unknownEndpoint)
 
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT
 app.listen(PORT, () => {
 	console.log(`Server running on port ${PORT}`)
 })
